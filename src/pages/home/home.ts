@@ -3,6 +3,7 @@ import { NavController, Platform } from 'ionic-angular';
 
 //Native components
 import { GoogleMaps, GoogleMap, GoogleMapsEvent, LatLng, CameraPosition, MarkerOptions, Marker, GoogleMapsAnimation } from '@ionic-native/google-maps';
+import { Geolocation } from '@ionic-native/geolocation';
 
 //Mocks
 import * as TreeMapping from '../../models/tree.mapping';
@@ -17,7 +18,7 @@ export class HomePage {
   private trees: TreeMapping.TreeMap[];
   public map: GoogleMap;
 
-  constructor(public navCtrl: NavController, private googleMaps: GoogleMaps, public platform: Platform) {
+  constructor(public navCtrl: NavController, private geolocation: Geolocation, private googleMaps: GoogleMaps, public platform: Platform) {
     //Data
     
     this.trees = TreeMapping.TreeMappingMock;
@@ -34,6 +35,33 @@ export class HomePage {
     let element: HTMLElement = document.getElementById('map');
 
     this.map = GoogleMaps.create(element);
+
+    //GeoLocation
+    this.geolocation.getCurrentPosition().then((resp) => {
+      let userPosition: LatLng = new LatLng(resp.coords.latitude, resp.coords.longitude);
+
+      let position: CameraPosition<LatLng> = {
+        target: userPosition,
+        zoom: 18,
+        tilt: 30
+      };
+
+      //Marker
+      let markerOptions: MarkerOptions={
+        position: userPosition,
+        title: 'Votre position actuelle',
+        animation: GoogleMapsAnimation.BOUNCE,
+      }
+  
+      this.map.addMarker(markerOptions)
+      .then((marker: Marker) => {
+        marker.showInfoWindow();
+      });
+
+      this.map.moveCamera(position);
+    }).catch((error) => {
+      console.log('Error getting location', error);
+    });
 
     // listen to MAP_READY event
     // You must wait for this event to fire before adding something to the map or modifying it in anyway
