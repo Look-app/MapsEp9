@@ -2,14 +2,28 @@ import { Component } from '@angular/core';
 import { NavController, Platform } from 'ionic-angular';
 
 //Native components
-import { GoogleMaps, GoogleMap, LatLng, GoogleMapsEvent, GoogleMapOptions, CameraPosition, MarkerOptions, Marker} from '@ionic-native/google-maps';
+import { GoogleMaps, GoogleMap, GoogleMapsEvent, LatLng, CameraPosition, MarkerOptions, Marker, GoogleMapsAnimation } from '@ionic-native/google-maps';
+
+//Mocks
+import * as TreeMapping from '../../models/tree.mapping';
+
+const MARKER_SIZE = 30;
 @Component({
   selector: 'page-home',
   templateUrl: 'home.html'
 })
 export class HomePage {
 
+  private trees: TreeMapping.TreeMap[];
+  public map: GoogleMap;
+
   constructor(public navCtrl: NavController, private googleMaps: GoogleMaps, public platform: Platform) {
+    //Data
+    
+    this.trees = TreeMapping.TreeMappingMock;
+    console.log(this.trees.length);
+    console.log(this.trees);
+
     platform.ready().then(() => {
       this.loadMap();
     });
@@ -19,39 +33,50 @@ export class HomePage {
     // create a new map by passing HTMLElement
     let element: HTMLElement = document.getElementById('map');
 
-    let map: GoogleMap = this.googleMaps.create(element);
+    this.map = GoogleMaps.create(element);
 
     // listen to MAP_READY event
     // You must wait for this event to fire before adding something to the map or modifying it in anyway
-    map.one(GoogleMapsEvent.MAP_READY).then(
+    this.map.one(GoogleMapsEvent.MAP_READY).then(
       () => {
         console.log('Map is ready!');
         // Now you can add elements to the map like the marker
+
+        for(var tree of this.trees){
+          this.addMarkerOnLap(tree);
+        }
       }
     );
+  }
 
-    // create LatLng object
-    let ionic: LatLng = new LatLng(43.0741904,-89.3809802);
+  private addMarkerOnLap(tree: TreeMapping.TreeMap){
+    //create LatLng object
+    let markerPosition: LatLng = new LatLng(tree.lat, tree.lng); 
+    
+    let markerIcon = {
+      'url': tree.globalImage,
+      'size': {
+        width:Math.round(MARKER_SIZE),
+        heigth:Math.round(MARKER_SIZE)
+      }
+    }
 
-    // create CameraPosition
-    let position: CameraPosition = {
-      target: ionic,
-      zoom: 18,
-      tilt: 30
-    };
+    let markerOptions: MarkerOptions={
+      position: markerPosition,
+      title: tree.name,
+      snippet: 'Touch for more infos',
+      animation: GoogleMapsAnimation.DROP,
+      infoClick:() => {
+        console.log('Famille -->' + tree.famille);
+        console.log('Scientific name -->' + tree.scientificName);
+        console.log('Size -->' + tree.size);
+      },
+      icon: markerIcon
+    }
 
-    // move the map's camera to position
-    map.moveCamera(position);
-
-    // create new marker
-    let markerOptions: MarkerOptions = {
-      position: ionic,
-      title: 'Ionic'
-    };
-
-    map.addMarker(markerOptions)
+    this.map.addMarker(markerOptions)
     .then((marker: Marker) => {
-        marker.showInfoWindow();
+      marker.showInfoWindow();
     });
   }
 }
